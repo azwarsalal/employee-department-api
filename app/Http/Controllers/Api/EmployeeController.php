@@ -21,9 +21,26 @@ class EmployeeController extends Controller
     public function index()
     {
         try {
-            $employees = Employee::with(['phones', 'addresses', 'department'])
-                        ->orderBy('id', 'DESC')
-                        ->get();
+           
+            //with search filter
+
+             $q = Employee::with(['department','phones','addresses']);
+        // Search by name, email, department
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $q->where(function($q2) use ($search){
+                $q2->where('first_name','like',"%{$search}%")
+                   ->orWhere('last_name','like',"%{$search}%")
+                   ->orWhere('email','like',"%{$search}%");
+            });
+        }
+        if ($request->filled('department_id')) {
+            $q->where('department_id', $request->department_id);
+        }
+        $employees = $q->orderBy('id','desc')->paginate($request->get('per_page', 15));
+        //return EmployeeResource::collection($employees); //return response a
+
+            //
 
             return response()->json(['success' => true, 'data' => $employees], 200);
         } catch (\Exception $e) {
