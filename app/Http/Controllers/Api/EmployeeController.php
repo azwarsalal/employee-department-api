@@ -92,17 +92,78 @@ class EmployeeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Employee $employee)
+    // ----------------------------------------------------
+    // GET /employees/{id}
+    // ----------------------------------------------------
+    public function show($id)
     {
-        //
+        try {
+            $employee = Employee::with(['phones', 'addresses', 'department'])->findOrFail($id);
+
+            return response()->json([
+                'status' => true,
+                'data'   => $employee
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Employee not found.'
+            ], 404);
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Employee $employee)
+    // ----------------------------------------------------
+    // PUT /employees/{id}
+    // ----------------------------------------------------
+    public function update(UpdateEmployeeRequest $request, $id)
     {
-        //
+        try {
+            DB::beginTransaction();
+
+            $employee = Employee::findOrFail($id);
+
+            $employee->update($request->only([
+                'department_id', 'first_name', 'last_name', 'email', 'dob'
+            ]));
+
+            // Delete old phones/addresses and re-add
+            $employee->phones()->delete();
+            $employee->addresses()->delete();
+
+            if ($request->phones) {
+                foreach ($request->phones as $phone) {
+                    $employee->phones()->create($phone);
+                }
+            }
+
+            if ($request->addresses) {
+                foreach ($request->addresses as $address) {
+                    $employee->addresses()->create($address);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Employee updated successfully.',
+                'data'    => $employee->load(['phones', 'addresses'])
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status'  => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
