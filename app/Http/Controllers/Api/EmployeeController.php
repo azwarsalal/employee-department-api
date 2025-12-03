@@ -169,8 +169,29 @@ class EmployeeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Employee $employee)
+     // ----------------------------------------------------
+    // DELETE /employees/{id}
+    // ----------------------------------------------------
+    public function destroy($id)
     {
-        //
+        try {
+            $employee = Employee::findOrFail($id);
+
+            $employee->phones()->delete();
+            $employee->addresses()->delete();
+            $employee->delete();
+
+            return response()->json([
+                'status'  => true,
+                'message' => 'Employee deleted successfully.'
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'status'  => false,
+                'message' => 'Employee not found.'
+            ], 404);
+        }
     }
 }
