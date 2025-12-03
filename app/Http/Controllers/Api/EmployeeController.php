@@ -15,9 +15,20 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
+    // ----------------------------------------------------
+    // employees
+    // ----------------------------------------------------
     public function index()
     {
-        //
+        try {
+            $employees = Employee::with(['phones', 'addresses', 'department'])
+                        ->orderBy('id', 'DESC')
+                        ->get();
+
+            return response()->json(['success' => true, 'data' => $employees], 200);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
