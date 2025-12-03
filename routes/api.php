@@ -7,3 +7,4 @@ Route::apiResource('employees', EmployeeController::class);
 
 // search employee
 Route::get('employees/search', [EmployeeController::class,'index']);
+Route::post('departments', [DepartmentController::class,'store']);

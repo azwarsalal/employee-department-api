@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\EmployeePhone;
+use App\Models\EmployeeAddress;
+
 use Illuminate\Http\Request;
-use App\Models\Employee;
 use App\Http\Requests\StoreEmployeeRequest;
 use App\Http\Requests\UpdateEmployeeRequest;
 use Illuminate\Support\Facades\DB;
@@ -18,35 +20,38 @@ class EmployeeController extends Controller
     // ----------------------------------------------------
     // employees
     // ----------------------------------------------------
-    public function index()
-    {
-        try {
-           
-            //with search filter
+    public function index(Request $request)
+{
+    try {
+        $q = Employee::select('employees.*', 'departments.name as department_name')
+            ->leftJoin('departments', 'employees.department_id', '=', 'departments.id');
 
-             $q = Employee::with(['department','phones','addresses']);
-        // Search by name, email, department
+        // Search by name, email
         if ($request->filled('search')) {
             $search = $request->search;
-            $q->where(function($q2) use ($search){
-                $q2->where('first_name','like',"%{$search}%")
-                   ->orWhere('last_name','like',"%{$search}%")
-                   ->orWhere('email','like',"%{$search}%");
+           //dd($search);
+            $q->where(function($query) use ($search) {
+                $query->where('employees.first_name', 'like', "%{$search}%")
+                      ->orWhere('employees.last_name', 'like', "%{$search}%")
+                      ->orWhere('employees.email', 'like', "%{$search}%");
             });
         }
+
+        // Filter by department
         if ($request->filled('department_id')) {
-            $q->where('department_id', $request->department_id);
+            $q->where('employees.department_id', $request->department_id);
         }
-        $employees = $q->orderBy('id','desc')->paginate($request->get('per_page', 15));
-        //return EmployeeResource::collection($employees); //return response a
 
-            //
+        // Pagination
+        $employees = $q->orderBy('employees.id', 'desc')
+                       ->paginate($request->get('per_page', 15));
 
-            return response()->json(['success' => true, 'data' => $employees], 200);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        return response()->json(['success' => true, 'data' => $employees], 200);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
+}
+
 
     /**
      * Store a newly created resource in storage.
@@ -55,7 +60,7 @@ class EmployeeController extends Controller
     // ----------------------------------------------------
     // create employees
     // ----------------------------------------------------
-    public function store(StoreEmployeeRequest $request)
+    public function store(Request $request)
     {
         try {
             DB::beginTransaction();
@@ -76,26 +81,32 @@ class EmployeeController extends Controller
             }
 
             // Add Addresses
+            
             if ($request->has('addresses')) {
                 foreach ($request->addresses as $addr) {
+                      $city= isset($addr['city']) ? $addr['city'] : '';
+                      $state= isset($addr['state']) ? $addr['state'] : '';
+                      $address_line1= isset($addr['address_line1']) ? $addr['address_line1'] : '';
                     EmployeeAddress::create([
                         'employee_id'   => $employee->id,
-                        'address_line1' => $addr['address_line1'],
-                        'city'          => $addr['city'] ?? null,
-                        'state'         => $addr['state'] ?? null,
+                        'address_line1' => $address_line1,
+                        'city'          => $city,
+                        'state'         => $state,
+                        'country'         => 'INDIA',
                     ]);
                 }
             }
 
             DB::commit();
+           
 
             return response()->json([
                 'status'  => true,
                 'message' => 'Employee created successfully.',
-                'data'    => $employee->load(['phones', 'addresses'])
+                'data'    => $employee
             ], 201);
 
-        } catch (\Exception $e) {
+       } catch (\Exception $e) {
 
             DB::rollBack();
 
@@ -209,6 +220,23 @@ class EmployeeController extends Controller
                 'status'  => false,
                 'message' => 'Employee not found.'
             ], 404);
+        }
+    }
+
+    //store department
+    public function storeDepartment(Request $request)
+    { dd('store departments');
+        $request->validate([
+            'name' => 'required|string|unique:departments,name',
+            'code' => 'nullable|string|unique:departments,code',
+        ]);
+
+        try {
+            $department = Department::create($request->only(['name', 'code']));
+
+            return response()->json(['success' => true, 'data' => $department], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }
