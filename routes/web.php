@@ -19,5 +19,8 @@ Route::post('/check', function () {
 // search employee
 Route::get('/api/employees/search', [EmployeeController::class,'index']);
 Route::any('/api/employees', [EmployeeController::class,'store']);
+Route::any('/api/employees/{id}', [EmployeeController::class,'show']);
+Route::any('/api/employees/delete/{id}', [EmployeeController::class,'destroy']);
+Route::any('/api/employees/update/{id}', [EmployeeController::class,'update']);
 //create department
 Route::any('/api/departments', [DepartmentController::class,'store']);

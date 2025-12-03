@@ -126,7 +126,8 @@ class EmployeeController extends Controller
     public function show($id)
     {
         try {
-            $employee = Employee::with(['phones', 'addresses', 'department'])->findOrFail($id);
+           // $employee = Employee::with(['phones', 'addresses', 'department'])->findOrFail($id);
+            $employee = Employee::findOrFail($id);
 
             return response()->json([
                 'status' => true,

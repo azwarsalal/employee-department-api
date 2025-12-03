@@ -58,7 +58,7 @@ class DepartmentController extends Controller
     {
         $request->validate([
             'name' => 'nullable|string|unique:departments,name,' . $id,
-            'code' => 'nullable|string|unique:departments,code,' . $id,
+            'description' => 'nullable|string|unique:departments,description,' . $id,
         ]);
 
         try {
